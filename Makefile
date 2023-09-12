@@ -8,9 +8,14 @@ HEADERS = $(wildcard include/*.h)
 
 objects = main.o log.o
 
-js8fortune: main.o log.o
-	gcc -o js8fortune $(objects) 
+all: js8fortune js8server
+	@echo "Done"
 
+js8fortune: main.o log.o
+	gcc -o js8fortune $(objects) -ljson-c
+
+js8server: server.o log.o
+	gcc -o js8server server.o log.o -ljson-c
 
 main.o: main.c
 log.o: log.c

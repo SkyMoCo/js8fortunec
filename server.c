@@ -1,11 +1,13 @@
-// Server side C/C++ program to demonstrate Socket
-// programming
+// Server side C/C++ program to demonstrate Socket programming
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <json-c/json.h>
+
+
 #define PORT 8080
 int main(int argc, char const* argv[])
 {
@@ -24,9 +26,7 @@ int main(int argc, char const* argv[])
   }
 
   // Forcefully attaching socket to the port 8080
-  if (setsockopt(server_fd, SOL_SOCKET,
-		 SO_REUSEADDR | SO_REUSEPORT, &opt,
-		 sizeof(opt))) {
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
     perror("setsockopt");
     exit(EXIT_FAILURE);
   }
@@ -45,21 +45,38 @@ int main(int argc, char const* argv[])
     perror("listen");
     exit(EXIT_FAILURE);
   }
-  if ((new_socket
-       = accept(server_fd, (struct sockaddr*)&address,
-		(socklen_t*)&addrlen))
-      < 0) {
-    perror("accept");
-    exit(EXIT_FAILURE);
-  }
-  valread = read(new_socket, buffer, 1024);
-  printf("%s\n", buffer);
-  send(new_socket, hello, strlen(hello), 0);
-  printf("Hello message sent\n");
+  while (1) {
+    printf("Waiting for connection\n");
+    if ((new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+      perror("accept");
+      exit(EXIT_FAILURE);
+    }
+    
+    valread = read(new_socket, buffer, 1024);
+    printf("%s\n", buffer);
+    // Get json object
+    jobj = json_tokener_parse(buffer);
+    jobj2 = f(jobj,"value");
 
-  // closing the connected socket
-  close(new_socket);
+    send(new_socket, hello, strlen(hello), 0);
+    printf("Hello message sent\n");
+    
+    // closing the connected socket
+    close(new_socket);
+  }
+  
   // closing the listening socket
   shutdown(server_fd, SHUT_RDWR);
   return 0;
+}
+
+
+json_object* f(json_object* rootObj, const char* key)
+{
+  json_object* returnObj;
+ 
+  if (json_object_object_get_ex(rootObj, key, &returnObj))  {
+    return returnObj;
+  }
+  return NULL;
 }
